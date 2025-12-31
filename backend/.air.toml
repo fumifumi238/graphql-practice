@@ -1,0 +1,32 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/main ."
+  bin = "tmp/main"
+  full_bin = ""
+  delay = 1000
+  stop_on_error = true
+  send_interrupt = true
+  kill_delay = 500
+
+[log]
+  time = true
+
+[color]
+  main = "yellow"
+  watcher = "cyan"
+  build = "green"
+  runner = "magenta"
+
+[watch]
+  includes = ["**/*.go"]
+  excludes = [
+    "tmp/**",
+    "vendor/**",
+    "node_modules/**",
+    ".git/**"
+  ]
+
+[misc]
+  clean_on_exit = true

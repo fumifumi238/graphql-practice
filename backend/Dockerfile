@@ -1,0 +1,22 @@
+FROM golang:1.24-alpine
+
+WORKDIR /app
+
+# 依存関係をダウンロード
+COPY go.mod go.sum ./
+RUN go mod download
+
+# airをインストール
+RUN go install github.com/cosmtrek/air@v1.52.0
+
+RUN echo 'gotestfail() { \
+  go test -v "${@:-./...}" 2>&1 \
+  | grep -v "no test files" \
+  | awk '\''/--- FAIL/ {flag=1} flag && /^    / {print} /^FAIL/ {flag=0}'\''; \
+  }' >> /root/.bashrc
+
+# ソースコードをコピー (volumesでマウントされるが、イメージ作成のためにも必要)
+COPY . .
+
+# 開発サーバーの実行は docker-compose.dev.yml の command で上書きされます
+CMD ["sh"]

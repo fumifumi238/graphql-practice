@@ -1,0 +1,16 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  ping: Ping!
+}
+
+type Mutation {
+  setMessage(message: String!): Ping!
+}
+
+type Ping {
+  message: String!
+}
