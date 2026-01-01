@@ -1,0 +1,23 @@
+query Todos {
+  todos {
+    id
+    title
+    completed
+  }
+}
+
+mutation AddTodo($title: String!) {
+  addTodo(title: $title) {
+    id
+    title
+    completed
+  }
+}
+
+mutation ToggleTodo($id: ID!) {
+  toggleTodo(id: $id) {
+    id
+    title
+    completed
+  }
+}

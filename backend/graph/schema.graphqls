@@ -5,12 +5,21 @@ schema {
 
 type Query {
   ping: Ping!
+  todos: [Todo!]!
 }
 
 type Mutation {
   setMessage(message: String!): Ping!
+  addTodo(title: String!): Todo!
+  toggleTodo(id: ID!): Todo!
 }
 
 type Ping {
   message: String!
+}
+
+type Todo {
+  id: ID!
+  title: String!
+  completed: Boolean!
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
-	"net/http"
+	"graphql-practice/backend/graph"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -22,10 +24,18 @@ func SetupCORS(r *gin.Engine) {
 
 func main() {
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
+		srv := handler.NewDefaultServer(
+		graph.NewExecutableSchema(
+			graph.Config{Resolvers: &graph.Resolver{}},
+		),
+	)
+
+	SetupCORS(r)
+
+	// GraphQL endpoint
+	r.POST("/graphql", gin.WrapH(srv))
+
+	// Playground
+	r.GET("/", gin.WrapH(playground.Handler("GraphQL", "/graphql")))
 	r.Run(":8080")
 }

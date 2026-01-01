@@ -11,3 +11,9 @@ type Ping struct {
 
 type Query struct {
 }
+
+type Todo struct {
+	ID        string `json:"id"`
+	Title     string `json:"title"`
+	Completed bool   `json:"completed"`
+}

@@ -5,4 +5,11 @@ package graph
 // It serves as dependency injection for your app, add any dependencies you require
 // here.
 
-type Resolver struct{}
+
+import "sync"
+import "graphql-practice/backend/graph/model"
+
+type Resolver struct {
+	mu    sync.Mutex
+	todos []*model.Todo
+}

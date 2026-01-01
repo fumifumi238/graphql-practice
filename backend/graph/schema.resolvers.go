@@ -7,19 +7,60 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"graphql-practice/backend/graph/model"
+
+	"github.com/google/uuid"
 )
 
+// SetMessage is the resolver for the setMessage field.
+func (r *mutationResolver) SetMessage(ctx context.Context, message string) (*model.Ping, error) {
+	return &model.Ping{
+		Message: message,
+	}, nil
+}
+
+// AddTodo is the resolver for the addTodo field.
+func (r *mutationResolver) AddTodo(ctx context.Context, title string) (*model.Todo, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	todo := &model.Todo{
+		ID:        uuid.NewString(),
+		Title:     title,
+		Completed: false,
+	}
+
+	r.todos = append(r.todos, todo)
+	return todo, nil
+}
+// ToggleTodo is the resolver for the toggleTodo field.
+func (r *mutationResolver) ToggleTodo(ctx context.Context, id string) (*model.Todo, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for _, todo := range r.todos {
+		if todo.ID == id {
+			todo.Completed = !todo.Completed
+			return todo, nil
+		}
+	}
+
+	return nil, fmt.Errorf("todo not found: %s", id)
+}
+// Ping is the resolver for the ping field.
 func (r *queryResolver) Ping(ctx context.Context) (*model.Ping, error) {
 	return &model.Ping{
 		Message: "pong",
 	}, nil
 }
 
-func (r *mutationResolver) SetMessage(ctx context.Context, message string) (*model.Ping, error) {
-	return &model.Ping{
-		Message: message,
-	}, nil
+// Todos is the resolver for the todos field.
+func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.todos, nil
 }
 
 // Mutation returns MutationResolver implementation.
@@ -30,18 +71,3 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
-}
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
-}
-*/

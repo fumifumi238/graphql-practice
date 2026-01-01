@@ -18,12 +18,24 @@ export type Scalars = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  addTodo: Todo;
   setMessage: Ping;
+  toggleTodo: Todo;
+};
+
+
+export type MutationAddTodoArgs = {
+  title: Scalars['String']['input'];
 };
 
 
 export type MutationSetMessageArgs = {
   message: Scalars['String']['input'];
+};
+
+
+export type MutationToggleTodoArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type Ping = {
@@ -34,6 +46,14 @@ export type Ping = {
 export type Query = {
   __typename?: 'Query';
   ping: Ping;
+  todos: Array<Todo>;
+};
+
+export type Todo = {
+  __typename?: 'Todo';
+  completed: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  title: Scalars['String']['output'];
 };
 
 export type GetPingQueryVariables = Exact<{ [key: string]: never; }>;
@@ -46,6 +66,28 @@ export type PingQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type PingQuery = { __typename?: 'Query', ping: { __typename?: 'Ping', message: string } };
 
+export type TodosQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type TodosQuery = { __typename?: 'Query', todos: Array<{ __typename?: 'Todo', id: string, title: string, completed: boolean }> };
+
+export type AddTodoMutationVariables = Exact<{
+  title: Scalars['String']['input'];
+}>;
+
+
+export type AddTodoMutation = { __typename?: 'Mutation', addTodo: { __typename?: 'Todo', id: string, title: string, completed: boolean } };
+
+export type ToggleTodoMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type ToggleTodoMutation = { __typename?: 'Mutation', toggleTodo: { __typename?: 'Todo', id: string, title: string, completed: boolean } };
+
 
 export const GetPingDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetPing"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ping"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]} as unknown as DocumentNode<GetPingQuery, GetPingQueryVariables>;
 export const PingDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Ping"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ping"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]} as unknown as DocumentNode<PingQuery, PingQueryVariables>;
+export const TodosDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Todos"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todos"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"completed"}}]}}]}}]} as unknown as DocumentNode<TodosQuery, TodosQueryVariables>;
+export const AddTodoDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"AddTodo"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"addTodo"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"completed"}}]}}]}}]} as unknown as DocumentNode<AddTodoMutation, AddTodoMutationVariables>;
+export const ToggleTodoDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ToggleTodo"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"toggleTodo"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"completed"}}]}}]}}]} as unknown as DocumentNode<ToggleTodoMutation, ToggleTodoMutationVariables>;
