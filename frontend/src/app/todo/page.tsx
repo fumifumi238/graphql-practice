@@ -8,7 +8,6 @@ import {
   ToggleTodoDocument,
 } from "@/gql/graphql";
 
-
 export default function TodosPage() {
   const [title, setTitle] = useState("");
 
@@ -16,7 +15,20 @@ export default function TodosPage() {
   const { data, loading, error } = useQuery(TodosDocument);
 
   // Todo 追加
-  const [addTodo] = useMutation(AddTodoDocument);
+  const [addTodo] = useMutation(AddTodoDocument, {
+    update(cache, { data }) {
+      if (!data?.addTodo) return;
+
+      cache.modify({
+        fields: {
+          todos(existing = [], { toReference }) {
+            const newRef = toReference(data.addTodo, true);
+            return [...existing, newRef];
+          },
+        },
+      });
+    },
+  });
 
   // Todo 切り替え
   const [toggleTodo] = useMutation(ToggleTodoDocument);

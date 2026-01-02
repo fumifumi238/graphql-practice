@@ -6,10 +6,8 @@ package graph
 // here.
 
 
-import "sync"
-import "graphql-practice/backend/graph/model"
+import "graphql-practice/backend/internal/repository"
 
 type Resolver struct {
-	mu    sync.Mutex
-	todos []*model.Todo
+	TodoRepo repository.TodoRepo
 }

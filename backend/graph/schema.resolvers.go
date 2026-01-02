@@ -7,10 +7,8 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"graphql-practice/backend/graph/model"
 
-	"github.com/google/uuid"
 )
 
 // SetMessage is the resolver for the setMessage field.
@@ -20,33 +18,38 @@ func (r *mutationResolver) SetMessage(ctx context.Context, message string) (*mod
 	}, nil
 }
 
-// AddTodo is the resolver for the addTodo field.
-func (r *mutationResolver) AddTodo(ctx context.Context, title string) (*model.Todo, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *mutationResolver) ToggleTodo(
+	ctx context.Context,
+	id string,
+) (*model.Todo, error) {
 
-	todo := &model.Todo{
-		ID:        uuid.NewString(),
-		Title:     title,
-		Completed: false,
+	todo, err := r.TodoRepo.Toggle(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
-	r.todos = append(r.todos, todo)
-	return todo, nil
+	return &model.Todo{
+		ID:        todo.ID,
+		Title:     todo.Title,
+		Completed: todo.Completed,
+	}, nil
 }
-// ToggleTodo is the resolver for the toggleTodo field.
-func (r *mutationResolver) ToggleTodo(ctx context.Context, id string) (*model.Todo, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
 
-	for _, todo := range r.todos {
-		if todo.ID == id {
-			todo.Completed = !todo.Completed
-			return todo, nil
-		}
+func (r *mutationResolver) AddTodo(
+	ctx context.Context,
+	title string,
+) (*model.Todo, error) {
+
+	todo, err := r.TodoRepo.Add(ctx, title)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("todo not found: %s", id)
+	return &model.Todo{
+		ID:        todo.ID,
+		Title:     todo.Title,
+		Completed: todo.Completed,
+	}, nil
 }
 // Ping is the resolver for the ping field.
 func (r *queryResolver) Ping(ctx context.Context) (*model.Ping, error) {
@@ -56,13 +59,27 @@ func (r *queryResolver) Ping(ctx context.Context) (*model.Ping, error) {
 }
 
 // Todos is the resolver for the todos field.
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *queryResolver) Todos(
+	ctx context.Context,
+) ([]*model.Todo, error) {
 
-	return r.todos, nil
+	todos, err := r.TodoRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// graphqlとして返す。
+	res := make([]*model.Todo, 0, len(todos))
+	for _, t := range todos {
+		res = append(res, &model.Todo{
+			ID:        t.ID,
+			Title:     t.Title,
+			Completed: t.Completed,
+		})
+	}
+
+	return res, nil
 }
-
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

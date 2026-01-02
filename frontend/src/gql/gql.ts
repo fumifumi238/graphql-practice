@@ -14,14 +14,14 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
-    "\n  query GetPing {\n    ping {\n      message\n    }\n  }\n": typeof types.GetPingDocument,
+    "\n                fragment NewTodo on Todo {\n                  id\n                  title\n                  completed\n                }\n              ": typeof types.NewTodoFragmentDoc,
     "query Ping {\n  ping {\n    message\n  }\n}": typeof types.PingDocument,
-    "query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    id\n    title\n    completed\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}": typeof types.TodosDocument,
+    "query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nfragment TodoFields on Todo {\n  id\n  title\n  completed\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    ...TodoFields\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}": typeof types.TodosDocument,
 };
 const documents: Documents = {
-    "\n  query GetPing {\n    ping {\n      message\n    }\n  }\n": types.GetPingDocument,
+    "\n                fragment NewTodo on Todo {\n                  id\n                  title\n                  completed\n                }\n              ": types.NewTodoFragmentDoc,
     "query Ping {\n  ping {\n    message\n  }\n}": types.PingDocument,
-    "query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    id\n    title\n    completed\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}": types.TodosDocument,
+    "query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nfragment TodoFields on Todo {\n  id\n  title\n  completed\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    ...TodoFields\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}": types.TodosDocument,
 };
 
 /**
@@ -41,7 +41,7 @@ export function graphql(source: string): unknown;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  query GetPing {\n    ping {\n      message\n    }\n  }\n"): (typeof documents)["\n  query GetPing {\n    ping {\n      message\n    }\n  }\n"];
+export function graphql(source: "\n                fragment NewTodo on Todo {\n                  id\n                  title\n                  completed\n                }\n              "): (typeof documents)["\n                fragment NewTodo on Todo {\n                  id\n                  title\n                  completed\n                }\n              "];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
@@ -49,7 +49,7 @@ export function graphql(source: "query Ping {\n  ping {\n    message\n  }\n}"): 
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    id\n    title\n    completed\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}"): (typeof documents)["query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    id\n    title\n    completed\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}"];
+export function graphql(source: "query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nfragment TodoFields on Todo {\n  id\n  title\n  completed\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    ...TodoFields\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}"): (typeof documents)["query Todos {\n  todos {\n    id\n    title\n    completed\n  }\n}\n\nfragment TodoFields on Todo {\n  id\n  title\n  completed\n}\n\nmutation AddTodo($title: String!) {\n  addTodo(title: $title) {\n    ...TodoFields\n  }\n}\n\nmutation ToggleTodo($id: ID!) {\n  toggleTodo(id: $id) {\n    id\n    title\n    completed\n  }\n}"];
 
 export function graphql(source: string) {
   return (documents as any)[source] ?? {};
