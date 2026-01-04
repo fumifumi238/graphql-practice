@@ -6,7 +6,9 @@ import {
   TodosDocument,
   AddTodoDocument,
   ToggleTodoDocument,
+  DeleteTodoDocument,
 } from "@/gql/graphql";
+import { Reference } from "@apollo/client";
 
 export default function TodosPage() {
   const [title, setTitle] = useState("");
@@ -30,6 +32,32 @@ export default function TodosPage() {
     },
   });
 
+  const [deleteTodo] = useMutation(DeleteTodoDocument, {
+    update(cache, { data }, { variables }) {
+      if (!data?.deleteTodo || !variables?.id) return;
+
+      cache.modify({
+        fields: {
+          todos(
+            existingRefs: readonly Reference[] = [],
+            { readField }
+          ): Reference[] {
+            return existingRefs.filter(
+              (todoRef) => readField("id", todoRef) !== variables.id
+            );
+          },
+        },
+      });
+    },
+  });
+
+  const handleDeleteTodo = (id: string) => {
+    if (!window.confirm("この Todo を削除しますか？")) return;
+
+    deleteTodo({
+      variables: { id },
+    });
+  };
   // Todo 切り替え
   const [toggleTodo] = useMutation(ToggleTodoDocument);
 
@@ -63,8 +91,9 @@ export default function TodosPage() {
                   })
                 }
               />
-              {todo.title}
+              {todo.title} {"  "}
             </label>
+            <button onClick={() => handleDeleteTodo(todo.id)}>Delete</button>
           </li>
         ))}
       </ul>

@@ -8,7 +8,6 @@ package graph
 import (
 	"context"
 	"graphql-practice/backend/graph/model"
-
 )
 
 // SetMessage is the resolver for the setMessage field.
@@ -18,23 +17,7 @@ func (r *mutationResolver) SetMessage(ctx context.Context, message string) (*mod
 	}, nil
 }
 
-func (r *mutationResolver) ToggleTodo(
-	ctx context.Context,
-	id string,
-) (*model.Todo, error) {
-
-	todo, err := r.TodoRepo.Toggle(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &model.Todo{
-		ID:        todo.ID,
-		Title:     todo.Title,
-		Completed: todo.Completed,
-	}, nil
-}
-
+// AddTodo is the resolver for the addTodo field.
 func (r *mutationResolver) AddTodo(
 	ctx context.Context,
 	title string,
@@ -51,6 +34,32 @@ func (r *mutationResolver) AddTodo(
 		Completed: todo.Completed,
 	}, nil
 }
+// ToggleTodo is the resolver for the toggleTodo field.
+func (r *mutationResolver) ToggleTodo(ctx context.Context, id string) (*model.Todo, error) {
+	todo, err := r.TodoRepo.Toggle(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Todo{
+		ID:        todo.ID,
+		Title:     todo.Title,
+		Completed: todo.Completed,
+	}, nil
+}
+
+// DeleteTodo is the resolver for the deleteTodo field.
+func (r *mutationResolver) DeleteTodo(
+	ctx context.Context,
+	id string,
+) (bool, error) {
+
+	if err := r.TodoRepo.Delete(ctx, id); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // Ping is the resolver for the ping field.
 func (r *queryResolver) Ping(ctx context.Context) (*model.Ping, error) {
 	return &model.Ping{
@@ -59,10 +68,7 @@ func (r *queryResolver) Ping(ctx context.Context) (*model.Ping, error) {
 }
 
 // Todos is the resolver for the todos field.
-func (r *queryResolver) Todos(
-	ctx context.Context,
-) ([]*model.Todo, error) {
-
+func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 	todos, err := r.TodoRepo.List(ctx)
 	if err != nil {
 		return nil, err
@@ -80,6 +86,7 @@ func (r *queryResolver) Todos(
 
 	return res, nil
 }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

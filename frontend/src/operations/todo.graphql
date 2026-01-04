@@ -25,3 +25,7 @@ mutation ToggleTodo($id: ID!) {
     completed
   }
 }
+
+mutation DeleteTodo($id: ID!) {
+  deleteTodo(id: $id)
+}

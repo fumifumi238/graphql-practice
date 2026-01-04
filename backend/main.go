@@ -42,7 +42,7 @@ func main() {
 	}
 
 	// 2️⃣ Repository 作成
-	todoRepo := repository.NewRedisTodoRepository(rdb)
+	todoRepo := repository.NewRedisTodoRepo(rdb)
 
 	// 3️⃣ Resolver に注入
 	resolver := &graph.Resolver{

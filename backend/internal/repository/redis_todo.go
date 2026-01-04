@@ -2,25 +2,48 @@ package repository
 
 import (
 	"context"
-	"strconv"
+	"encoding/json"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
+
 
 type RedisTodoRepo struct {
 	rdb *redis.Client
 }
 
-func NewRedisTodoRepository(rdb *redis.Client) *RedisTodoRepo {
-	return &RedisTodoRepo{
-		rdb: rdb,
-	}
+func NewRedisTodoRepo(rdb *redis.Client) *RedisTodoRepo {
+	return &RedisTodoRepo{rdb: rdb}
 }
 
-func (r *RedisTodoRepo) List(
-	ctx context.Context,
-) ([]*Todo, error) {
-	ids, err := r.rdb.SMembers(ctx, "todo:ids").Result()
+/*
+--------------------
+ helper
+--------------------
+*/
+
+func marshal(v any) (string, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func unmarshal(s string, v any) error {
+	return json.Unmarshal([]byte(s), v)
+}
+
+/*
+--------------------
+ Query
+--------------------
+*/
+
+func (r *RedisTodoRepo) List(ctx context.Context) ([]*Todo, error) {
+	ids, err := r.rdb.ZRange(ctx, "todos:zset", 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -28,95 +51,91 @@ func (r *RedisTodoRepo) List(
 	todos := make([]*Todo, 0, len(ids))
 
 	for _, id := range ids {
-		key := "todo:" + id
-
-		data, err := r.rdb.HGetAll(ctx, key).Result()
+		val, err := r.rdb.Get(ctx, "todo:"+id).Result()
+		if err == redis.Nil {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
 
-		if len(data) == 0 {
-			continue
+		var todo Todo
+		if err := unmarshal(val, &todo); err != nil {
+			return nil, err
 		}
 
-		completed, _ := strconv.ParseBool(data["completed"])
-
-		todos = append(todos, &Todo{
-			ID:        data["id"],
-			Title:     data["title"],
-			Completed: completed,
-		})
+		todos = append(todos, &todo)
 	}
 
 	return todos, nil
 }
 
-func (r *RedisTodoRepo) Add(
-	ctx context.Context,
-	title string,
-) (*Todo, error) {
-	// 1️⃣ ID を自動生成
-	id, err := r.rdb.Incr(ctx, "todo:id").Result()
-	if err != nil {
-		return nil, err
-	}
+/*
+--------------------
+ Mutation
+--------------------
+*/
 
-	key := "todo:" + strconv.FormatInt(id, 10)
-
+func (r *RedisTodoRepo) Add(ctx context.Context, title string) (*Todo, error) {
 	todo := &Todo{
-		ID:        strconv.FormatInt(id, 10),
+		ID:        uuid.NewString(),
 		Title:     title,
 		Completed: false,
 	}
 
-	// 2️⃣ Hash に保存
-	err = r.rdb.HSet(ctx, key, map[string]interface{}{
-		"id":        todo.ID,
-		"title":     todo.Title,
-		"completed": "false",
-	}).Err()
+	data, err := marshal(todo)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3️⃣ 一覧用 Set に追加
-	err = r.rdb.SAdd(ctx, "todo:ids", todo.ID).Err()
-	if err != nil {
+	score := float64(time.Now().UnixNano())
+
+	pipe := r.rdb.TxPipeline()
+	pipe.Set(ctx, "todo:"+todo.ID, data, 0)
+	pipe.ZAdd(ctx, "todos:zset", redis.Z{
+		Score:  score,
+		Member: todo.ID,
+	})
+
+	if _, err := pipe.Exec(ctx); err != nil {
 		return nil, err
 	}
 
 	return todo, nil
 }
 
-func (r *RedisTodoRepo) Toggle(
-	ctx context.Context,
-	id string,
-) (*Todo, error) {
+func (r *RedisTodoRepo) Toggle(ctx context.Context, id string) (*Todo, error) {
 	key := "todo:" + id
 
-	// 現在の状態取得
-	completedStr, err := r.rdb.HGet(ctx, key, "completed").Result()
+	val, err := r.rdb.Get(ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	completed, _ := strconv.ParseBool(completedStr)
-	newCompleted := !completed
+	var todo Todo
+	if err := unmarshal(val, &todo); err != nil {
+		return nil, err
+	}
 
-	// 更新
-	err = r.rdb.HSet(ctx, key, "completed", strconv.FormatBool(newCompleted)).Err()
+	todo.Completed = !todo.Completed
+
+	data, err := marshal(&todo)
 	if err != nil {
 		return nil, err
 	}
 
-	title, err := r.rdb.HGet(ctx, key, "title").Result()
-	if err != nil {
+	if err := r.rdb.Set(ctx, key, data, 0).Err(); err != nil {
 		return nil, err
 	}
 
-	return &Todo{
-		ID:        id,
-		Title:     title,
-		Completed: newCompleted,
-	}, nil
+	return &todo, nil
+}
+
+func (r *RedisTodoRepo) Delete(ctx context.Context, id string) error {
+	pipe := r.rdb.TxPipeline()
+	pipe.Del(ctx, "todo:"+id)
+	pipe.ZRem(ctx, "todos:zset", id)
+
+	_, err := pipe.Exec(ctx)
+	return err
 }

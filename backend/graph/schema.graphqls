@@ -12,6 +12,7 @@ type Mutation {
   setMessage(message: String!): Ping!
   addTodo(title: String!): Todo!
   toggleTodo(id: ID!): Todo!
+  deleteTodo(id: ID!): Boolean!
 }
 
 type Ping {
