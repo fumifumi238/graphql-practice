@@ -47,6 +47,7 @@ func main() {
 	// 3️⃣ Resolver に注入
 	resolver := &graph.Resolver{
 		TodoRepo: todoRepo,
+		Redis: rdb,
 	}
 
 	// 4️⃣ GraphQL Server

@@ -29,3 +29,14 @@ mutation ToggleTodo($id: ID!) {
 mutation DeleteTodo($id: ID!) {
   deleteTodo(id: $id)
 }
+
+subscription TodoEvent {
+  todoEvent {
+    type
+    todo {
+      id
+      title
+      completed
+    }
+  }
+}

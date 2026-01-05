@@ -2,6 +2,13 @@
 
 package model
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type Mutation struct {
 }
 
@@ -12,8 +19,74 @@ type Ping struct {
 type Query struct {
 }
 
+type Subscription struct {
+	TodoEvent *TodoEvent `json:"todoEvent"`
+}
+
 type Todo struct {
 	ID        string `json:"id"`
 	Title     string `json:"title"`
 	Completed bool   `json:"completed"`
+}
+
+type TodoEvent struct {
+	Type TodoEventType `json:"type"`
+	Todo *Todo         `json:"todo"`
+}
+
+type TodoEventType string
+
+const (
+	TodoEventTypeAdded   TodoEventType = "ADDED"
+	TodoEventTypeUpdated TodoEventType = "UPDATED"
+	TodoEventTypeDeleted TodoEventType = "DELETED"
+)
+
+var AllTodoEventType = []TodoEventType{
+	TodoEventTypeAdded,
+	TodoEventTypeUpdated,
+	TodoEventTypeDeleted,
+}
+
+func (e TodoEventType) IsValid() bool {
+	switch e {
+	case TodoEventTypeAdded, TodoEventTypeUpdated, TodoEventTypeDeleted:
+		return true
+	}
+	return false
+}
+
+func (e TodoEventType) String() string {
+	return string(e)
+}
+
+func (e *TodoEventType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TodoEventType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TodoEventType", str)
+	}
+	return nil
+}
+
+func (e TodoEventType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TodoEventType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TodoEventType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

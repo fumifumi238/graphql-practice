@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
-	"time"
+
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -18,55 +18,19 @@ func NewRedisTodoRepo(rdb *redis.Client) *RedisTodoRepo {
 	return &RedisTodoRepo{rdb: rdb}
 }
 
-/*
---------------------
- helper
---------------------
-*/
-
-func marshal(v any) (string, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-func unmarshal(s string, v any) error {
-	return json.Unmarshal([]byte(s), v)
-}
-
-/*
---------------------
- Query
---------------------
-*/
 
 func (r *RedisTodoRepo) List(ctx context.Context) ([]*Todo, error) {
-	ids, err := r.rdb.ZRange(ctx, "todos:zset", 0, -1).Result()
-	if err != nil {
-		return nil, err
-	}
-
+	ids, _ := r.rdb.ZRange(ctx, "todos", 0, -1).Result()
 	todos := make([]*Todo, 0, len(ids))
-
 	for _, id := range ids {
 		val, err := r.rdb.Get(ctx, "todo:"+id).Result()
-		if err == redis.Nil {
+		if err != nil {
 			continue
 		}
-		if err != nil {
-			return nil, err
-		}
-
-		var todo Todo
-		if err := unmarshal(val, &todo); err != nil {
-			return nil, err
-		}
-
-		todos = append(todos, &todo)
+		var t Todo
+		json.Unmarshal([]byte(val), &t)
+		todos = append(todos, &t)
 	}
-
 	return todos, nil
 }
 
@@ -77,65 +41,35 @@ func (r *RedisTodoRepo) List(ctx context.Context) ([]*Todo, error) {
 */
 
 func (r *RedisTodoRepo) Add(ctx context.Context, title string) (*Todo, error) {
+
 	todo := &Todo{
 		ID:        uuid.NewString(),
 		Title:     title,
 		Completed: false,
 	}
 
-	data, err := marshal(todo)
-	if err != nil {
-		return nil, err
-	}
-
-	score := float64(time.Now().UnixNano())
-
+	b, _ := json.Marshal(todo)
 	pipe := r.rdb.TxPipeline()
-	pipe.Set(ctx, "todo:"+todo.ID, data, 0)
-	pipe.ZAdd(ctx, "todos:zset", redis.Z{
-		Score:  score,
-		Member: todo.ID,
-	})
-
-	if _, err := pipe.Exec(ctx); err != nil {
-		return nil, err
-	}
-
-	return todo, nil
+	pipe.Set(ctx, "todo:"+todo.ID, b, 0)
+	pipe.ZAdd(ctx, "todos", redis.Z{Score: float64(len(todo.ID)), Member: todo.ID})
+	_, err := pipe.Exec(ctx)
+	return todo,err
 }
 
 func (r *RedisTodoRepo) Toggle(ctx context.Context, id string) (*Todo, error) {
-	key := "todo:" + id
-
-	val, err := r.rdb.Get(ctx, key).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	var todo Todo
-	if err := unmarshal(val, &todo); err != nil {
-		return nil, err
-	}
-
-	todo.Completed = !todo.Completed
-
-	data, err := marshal(&todo)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := r.rdb.Set(ctx, key, data, 0).Err(); err != nil {
-		return nil, err
-	}
-
-	return &todo, nil
+	val, _ := r.rdb.Get(ctx, "todo:"+id).Result()
+	var t Todo
+	json.Unmarshal([]byte(val), &t)
+	t.Completed = !t.Completed
+	b, _ := json.Marshal(t)
+	r.rdb.Set(ctx, "todo:"+id, b, 0)
+	return &t, nil
 }
 
 func (r *RedisTodoRepo) Delete(ctx context.Context, id string) error {
 	pipe := r.rdb.TxPipeline()
 	pipe.Del(ctx, "todo:"+id)
-	pipe.ZRem(ctx, "todos:zset", id)
-
+	pipe.ZRem(ctx, "todos", id)
 	_, err := pipe.Exec(ctx)
 	return err
 }

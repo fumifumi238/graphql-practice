@@ -7,6 +7,7 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
 	"graphql-practice/backend/graph/model"
 )
 
@@ -18,46 +19,53 @@ func (r *mutationResolver) SetMessage(ctx context.Context, message string) (*mod
 }
 
 // AddTodo is the resolver for the addTodo field.
-func (r *mutationResolver) AddTodo(
-	ctx context.Context,
-	title string,
-) (*model.Todo, error) {
-
-	todo, err := r.TodoRepo.Add(ctx, title)
+func (r *mutationResolver) AddTodo(ctx context.Context, title string) (*model.Todo, error) {
+	addedTodo, err := r.TodoRepo.Add(ctx, title)
 	if err != nil {
 		return nil, err
 	}
 
-	return &model.Todo{
-		ID:        todo.ID,
-		Title:     todo.Title,
-		Completed: todo.Completed,
-	}, nil
+	todo := &model.Todo{
+		ID:        addedTodo.ID,
+		Title:     addedTodo.Title,
+		Completed: addedTodo.Completed,
+	}
+
+	event := model.TodoEvent{Type: model.TodoEventTypeAdded, Todo: &model.Todo{
+		ID: todo.ID, Title: todo.Title, Completed: todo.Completed,
+	}}
+
+	b, _ := json.Marshal(event)
+	r.Redis.Publish(ctx, "todo:events", b)
+
+	return event.Todo, nil
 }
+
 // ToggleTodo is the resolver for the toggleTodo field.
 func (r *mutationResolver) ToggleTodo(ctx context.Context, id string) (*model.Todo, error) {
-	todo, err := r.TodoRepo.Toggle(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+	todo, _ := r.TodoRepo.Toggle(ctx, id)
 
-	return &model.Todo{
-		ID:        todo.ID,
-		Title:     todo.Title,
-		Completed: todo.Completed,
-	}, nil
+	event := model.TodoEvent{Type: model.TodoEventTypeUpdated, Todo: &model.Todo{
+		ID: todo.ID, Title: todo.Title, Completed: todo.Completed,
+	}}
+	b, _ := json.Marshal(event)
+	r.Redis.Publish(ctx, "todo:events", b)
+
+	return event.Todo, nil
 }
 
 // DeleteTodo is the resolver for the deleteTodo field.
-func (r *mutationResolver) DeleteTodo(
-	ctx context.Context,
-	id string,
-) (bool, error) {
+func (r *mutationResolver) DeleteTodo(ctx context.Context, id string) (string, error) {
+	r.TodoRepo.Delete(ctx, id)
 
-	if err := r.TodoRepo.Delete(ctx, id); err != nil {
-		return false, err
+	event := model.TodoEvent{
+		Type: model.TodoEventTypeDeleted,
+		Todo: &model.Todo{ID: id},
 	}
-	return true, nil
+	b, _ := json.Marshal(event)
+	r.Redis.Publish(ctx, "todo:events", b)
+
+	return id, nil
 }
 
 // Ping is the resolver for the ping field.
@@ -69,12 +77,7 @@ func (r *queryResolver) Ping(ctx context.Context) (*model.Ping, error) {
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	todos, err := r.TodoRepo.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// graphqlとして返す。
+	todos, _ := r.TodoRepo.List(ctx)
 	res := make([]*model.Todo, 0, len(todos))
 	for _, t := range todos {
 		res = append(res, &model.Todo{
@@ -83,8 +86,24 @@ func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 			Completed: t.Completed,
 		})
 	}
-
 	return res, nil
+}
+
+func (r *subscriptionResolver) TodoEvents(ctx context.Context) (<-chan *model.TodoEvent, error) {
+	ch := make(chan *model.TodoEvent)
+	sub := r.Redis.Subscribe(ctx, "todo:events")
+
+	go func() {
+		defer close(ch)
+		for msg := range sub.Channel() {
+			var ev model.TodoEvent
+			if json.Unmarshal([]byte(msg.Payload), &ev) == nil {
+				ch <- &ev
+			}
+		}
+	}()
+
+	return ch, nil
 }
 
 // Mutation returns MutationResolver implementation.
@@ -95,3 +114,6 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+
+	type subscriptionResolver struct{*Resolver}

@@ -63,10 +63,19 @@ type ComplexityRoot struct {
 		Todos func(childComplexity int) int
 	}
 
+	Subscription struct {
+		TodoEvent func(childComplexity int) int
+	}
+
 	Todo struct {
 		Completed func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Title     func(childComplexity int) int
+	}
+
+	TodoEvent struct {
+		Todo func(childComplexity int) int
+		Type func(childComplexity int) int
 	}
 }
 
@@ -74,7 +83,7 @@ type MutationResolver interface {
 	SetMessage(ctx context.Context, message string) (*model.Ping, error)
 	AddTodo(ctx context.Context, title string) (*model.Todo, error)
 	ToggleTodo(ctx context.Context, id string) (*model.Todo, error)
-	DeleteTodo(ctx context.Context, id string) (bool, error)
+	DeleteTodo(ctx context.Context, id string) (string, error)
 }
 type QueryResolver interface {
 	Ping(ctx context.Context) (*model.Ping, error)
@@ -165,6 +174,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Todos(childComplexity), true
 
+	case "Subscription.todoEvent":
+		if e.complexity.Subscription.TodoEvent == nil {
+			break
+		}
+
+		return e.complexity.Subscription.TodoEvent(childComplexity), true
+
 	case "Todo.completed":
 		if e.complexity.Todo.Completed == nil {
 			break
@@ -183,6 +199,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Todo.Title(childComplexity), true
+
+	case "TodoEvent.todo":
+		if e.complexity.TodoEvent.Todo == nil {
+			break
+		}
+
+		return e.complexity.TodoEvent.Todo(childComplexity), true
+	case "TodoEvent.type":
+		if e.complexity.TodoEvent.Type == nil {
+			break
+		}
+
+		return e.complexity.TodoEvent.Type(childComplexity), true
 
 	}
 	return 0, false
@@ -568,7 +597,7 @@ func (ec *executionContext) _Mutation_deleteTodo(ctx context.Context, field grap
 			return ec.resolvers.Mutation().DeleteTodo(ctx, fc.Args["id"].(string))
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		ec.marshalNID2string,
 		true,
 		true,
 	)
@@ -581,7 +610,7 @@ func (ec *executionContext) fieldContext_Mutation_deleteTodo(ctx context.Context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	defer func() {
@@ -805,6 +834,41 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Subscription_todoEvent(ctx context.Context, field graphql.CollectedField, obj *model.Subscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_todoEvent,
+		func(ctx context.Context) (any, error) {
+			return obj.TodoEvent, nil
+		},
+		nil,
+		ec.marshalNTodoEvent2ᚖgraphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEvent,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_todoEvent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "type":
+				return ec.fieldContext_TodoEvent_type(ctx, field)
+			case "todo":
+				return ec.fieldContext_TodoEvent_todo(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TodoEvent", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Todo_id(ctx context.Context, field graphql.CollectedField, obj *model.Todo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -887,6 +951,72 @@ func (ec *executionContext) fieldContext_Todo_completed(_ context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TodoEvent_type(ctx context.Context, field graphql.CollectedField, obj *model.TodoEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TodoEvent_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNTodoEventType2graphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEventType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TodoEvent_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TodoEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type TodoEventType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TodoEvent_todo(ctx context.Context, field graphql.CollectedField, obj *model.TodoEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TodoEvent_todo,
+		func(ctx context.Context) (any, error) {
+			return obj.Todo, nil
+		},
+		nil,
+		ec.marshalNTodo2ᚖgraphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodo,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TodoEvent_todo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TodoEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Todo_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Todo_title(ctx, field)
+			case "completed":
+				return ec.fieldContext_Todo_completed(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Todo", field.Name)
 		},
 	}
 	return fc, nil
@@ -2549,6 +2679,45 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
+var subscriptionImplementors = []string{"Subscription"}
+
+func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet, obj *model.Subscription) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Subscription")
+		case "todoEvent":
+			out.Values[i] = ec._Subscription_todoEvent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var todoImplementors = []string{"Todo"}
 
 func (ec *executionContext) _Todo(ctx context.Context, sel ast.SelectionSet, obj *model.Todo) graphql.Marshaler {
@@ -2572,6 +2741,50 @@ func (ec *executionContext) _Todo(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "completed":
 			out.Values[i] = ec._Todo_completed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var todoEventImplementors = []string{"TodoEvent"}
+
+func (ec *executionContext) _TodoEvent(ctx context.Context, sel ast.SelectionSet, obj *model.TodoEvent) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, todoEventImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TodoEvent")
+		case "type":
+			out.Values[i] = ec._TodoEvent_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "todo":
+			out.Values[i] = ec._TodoEvent_todo(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3051,6 +3264,26 @@ func (ec *executionContext) marshalNTodo2ᚖgraphqlᚑpracticeᚋbackendᚋgraph
 		return graphql.Null
 	}
 	return ec._Todo(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTodoEvent2ᚖgraphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEvent(ctx context.Context, sel ast.SelectionSet, v *model.TodoEvent) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TodoEvent(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTodoEventType2graphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEventType(ctx context.Context, v any) (model.TodoEventType, error) {
+	var res model.TodoEventType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTodoEventType2graphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEventType(ctx context.Context, sel ast.SelectionSet, v model.TodoEventType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
