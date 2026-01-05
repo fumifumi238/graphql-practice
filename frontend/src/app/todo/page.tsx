@@ -27,7 +27,7 @@ export default function TodosPage() {
           todos(
             existingRefs: readonly Reference[] = [],
             { readField, toReference }
-          ): Reference[] {
+          ): readonly Reference[] {
             switch (event.type) {
               case "ADDED": {
                 const newRef = toReference(event.todo, true);
@@ -59,39 +59,10 @@ export default function TodosPage() {
   });
 
   // Todo 追加
-  const [addTodo] = useMutation(AddTodoDocument, {
-    update(cache, { data }) {
-      if (!data?.addTodo) return;
+  const [addTodo] = useMutation(AddTodoDocument);
 
-      cache.modify({
-        fields: {
-          todos(existing = [], { toReference }) {
-            const newRef = toReference(data.addTodo, true);
-            return [...existing, newRef];
-          },
-        },
-      });
-    },
-  });
-
-  const [deleteTodo] = useMutation(DeleteTodoDocument, {
-    update(cache, { data }, { variables }) {
-      if (!data?.deleteTodo || !variables?.id) return;
-
-      cache.modify({
-        fields: {
-          todos(
-            existingRefs: readonly Reference[] = [],
-            { readField }
-          ): Reference[] {
-            return existingRefs.filter(
-              (todoRef) => readField("id", todoRef) !== variables.id
-            );
-          },
-        },
-      });
-    },
-  });
+  const [deleteTodo] = useMutation(DeleteTodoDocument);
+  const [toggleTodo] = useMutation(ToggleTodoDocument);
 
   const handleDeleteTodo = (id: string) => {
     if (!window.confirm("この Todo を削除しますか？")) return;
@@ -101,7 +72,6 @@ export default function TodosPage() {
     });
   };
   // Todo 切り替え
-  const [toggleTodo] = useMutation(ToggleTodoDocument);
 
   if (loading) return <p>loading...</p>;
   if (error) return <p>error</p>;
