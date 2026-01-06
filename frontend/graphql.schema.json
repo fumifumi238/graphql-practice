@@ -277,7 +277,7 @@
         "isOneOf": null,
         "fields": [
           {
-            "name": "todoEvent",
+            "name": "todoEvents",
             "description": null,
             "args": [],
             "type": {

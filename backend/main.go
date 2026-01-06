@@ -5,12 +5,15 @@ import (
 	"graphql-practice/backend/graph"
 	"graphql-practice/backend/internal/repository"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -51,19 +54,28 @@ func main() {
 	}
 
 	// 4️⃣ GraphQL Server
-	srv := handler.NewDefaultServer(
-		graph.NewExecutableSchema(
-			graph.Config{
-				Resolvers: resolver,
-			},
-		),
-	)
+srv := handler.New(graph.NewExecutableSchema(graph.Config{
+	Resolvers: resolver,
+}))
 
+srv.AddTransport(transport.Options{})
+srv.AddTransport(transport.GET{})
+srv.AddTransport(transport.POST{})
+
+srv.AddTransport(transport.Websocket{
+	KeepAlivePingInterval: 10 * time.Second,
+	Upgrader: websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	},
+})
 	// 5️⃣ Gin
 	r := gin.Default()
 	SetupCORS(r)
 
 	r.POST("/graphql", gin.WrapH(srv))
+	r.GET("/graphql", gin.WrapH(srv))
 	r.GET("/", gin.WrapH(playground.Handler("GraphQL Playground", "/graphql")))
 
 	r.Run(":8080")

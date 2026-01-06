@@ -41,6 +41,7 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Subscription() SubscriptionResolver
 }
 
 type DirectiveRoot struct {
@@ -64,7 +65,7 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		TodoEvent func(childComplexity int) int
+		TodoEvents func(childComplexity int) int
 	}
 
 	Todo struct {
@@ -88,6 +89,9 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Ping(ctx context.Context) (*model.Ping, error)
 	Todos(ctx context.Context) ([]*model.Todo, error)
+}
+type SubscriptionResolver interface {
+	TodoEvents(ctx context.Context) (<-chan *model.TodoEvent, error)
 }
 
 type executableSchema struct {
@@ -174,12 +178,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Todos(childComplexity), true
 
-	case "Subscription.todoEvent":
-		if e.complexity.Subscription.TodoEvent == nil {
+	case "Subscription.todoEvents":
+		if e.complexity.Subscription.TodoEvents == nil {
 			break
 		}
 
-		return e.complexity.Subscription.TodoEvent(childComplexity), true
+		return e.complexity.Subscription.TodoEvents(childComplexity), true
 
 	case "Todo.completed":
 		if e.complexity.Todo.Completed == nil {
@@ -263,6 +267,23 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Mutation(ctx, opCtx.Operation.SelectionSet)
 			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
+	case ast.Subscription:
+		next := ec._Subscription(ctx, opCtx.Operation.SelectionSet)
+
+		var buf bytes.Buffer
+		return func(ctx context.Context) *graphql.Response {
+			buf.Reset()
+			data := next(ctx)
+
+			if data == nil {
+				return nil
+			}
 			data.MarshalGQL(&buf)
 
 			return &graphql.Response{
@@ -834,14 +855,14 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_todoEvent(ctx context.Context, field graphql.CollectedField, obj *model.Subscription) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
+func (ec *executionContext) _Subscription_todoEvents(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Subscription_todoEvent,
+		ec.fieldContext_Subscription_todoEvents,
 		func(ctx context.Context) (any, error) {
-			return obj.TodoEvent, nil
+			return ec.resolvers.Subscription().TodoEvents(ctx)
 		},
 		nil,
 		ec.marshalNTodoEvent2ᚖgraphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEvent,
@@ -850,12 +871,12 @@ func (ec *executionContext) _Subscription_todoEvent(ctx context.Context, field g
 	)
 }
 
-func (ec *executionContext) fieldContext_Subscription_todoEvent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Subscription_todoEvents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Subscription",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "type":
@@ -2681,41 +2702,22 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var subscriptionImplementors = []string{"Subscription"}
 
-func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet, obj *model.Subscription) graphql.Marshaler {
+func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func(ctx context.Context) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Subscription")
-		case "todoEvent":
-			out.Values[i] = ec._Subscription_todoEvent(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Subscription",
+	})
+	if len(fields) != 1 {
+		graphql.AddErrorf(ctx, "must subscribe to exactly one stream")
+		return nil
 	}
 
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
+	switch fields[0].Name {
+	case "todoEvents":
+		return ec._Subscription_todoEvents(ctx, fields[0])
+	default:
+		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
-
-	return out
 }
 
 var todoImplementors = []string{"Todo"}
@@ -3264,6 +3266,10 @@ func (ec *executionContext) marshalNTodo2ᚖgraphqlᚑpracticeᚋbackendᚋgraph
 		return graphql.Null
 	}
 	return ec._Todo(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTodoEvent2graphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEvent(ctx context.Context, sel ast.SelectionSet, v model.TodoEvent) graphql.Marshaler {
+	return ec._TodoEvent(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNTodoEvent2ᚖgraphqlᚑpracticeᚋbackendᚋgraphᚋmodelᚐTodoEvent(ctx context.Context, sel ast.SelectionSet, v *model.TodoEvent) graphql.Marshaler {

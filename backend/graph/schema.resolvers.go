@@ -89,6 +89,7 @@ func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 	return res, nil
 }
 
+// TodoEvents is the resolver for the todoEvents field.
 func (r *subscriptionResolver) TodoEvents(ctx context.Context) (<-chan *model.TodoEvent, error) {
 	ch := make(chan *model.TodoEvent)
 	sub := r.Redis.Subscribe(ctx, "todo:events")
@@ -97,7 +98,7 @@ func (r *subscriptionResolver) TodoEvents(ctx context.Context) (<-chan *model.To
 		defer close(ch)
 		for msg := range sub.Channel() {
 			var ev model.TodoEvent
-			if json.Unmarshal([]byte(msg.Payload), &ev) == nil {
+			if err := json.Unmarshal([]byte(msg.Payload), &ev); err == nil {
 				ch <- &ev
 			}
 		}
@@ -112,8 +113,9 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-
-	type subscriptionResolver struct{*Resolver}
+type subscriptionResolver struct{ *Resolver }

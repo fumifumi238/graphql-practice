@@ -19,7 +19,7 @@ export default function TodosPage() {
 
   useSubscription(TodoEventDocument, {
     onData({ data, client }) {
-      const event = data.data?.todoEvent;
+      const event = data.data?.todoEvents;
       if (!event) return;
 
       client.cache.modify({
@@ -59,8 +59,16 @@ export default function TodosPage() {
   });
 
   // Todo 追加
-  const [addTodo] = useMutation(AddTodoDocument);
-
+  const [addTodo] = useMutation(AddTodoDocument, {
+    optimisticResponse: {
+      addTodo: {
+        __typename: "Todo",
+        id: "temp-" + crypto.randomUUID(),
+        title,
+        completed: false,
+      },
+    },
+  });
   const [deleteTodo] = useMutation(DeleteTodoDocument);
   const [toggleTodo] = useMutation(ToggleTodoDocument);
 
@@ -69,6 +77,9 @@ export default function TodosPage() {
 
     deleteTodo({
       variables: { id },
+      optimisticResponse: {
+        deleteTodo: id,
+      },
     });
   };
   // Todo 切り替え
@@ -100,6 +111,7 @@ export default function TodosPage() {
                 onChange={() =>
                   toggleTodo({
                     variables: { id: todo.id },
+
                   })
                 }
               />

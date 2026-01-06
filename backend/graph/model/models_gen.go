@@ -20,7 +20,6 @@ type Query struct {
 }
 
 type Subscription struct {
-	TodoEvent *TodoEvent `json:"todoEvent"`
 }
 
 type Todo struct {

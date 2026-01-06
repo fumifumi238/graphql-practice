@@ -6,15 +6,12 @@ query Todos {
   }
 }
 
-fragment TodoFields on Todo {
-  id
-  title
-  completed
-}
 
 mutation AddTodo($title: String!) {
   addTodo(title: $title) {
-    ...TodoFields
+    id
+    title
+    completed
   }
 }
 
@@ -31,7 +28,7 @@ mutation DeleteTodo($id: ID!) {
 }
 
 subscription TodoEvent {
-  todoEvent {
+  todoEvents {
     type
     todo {
       id
