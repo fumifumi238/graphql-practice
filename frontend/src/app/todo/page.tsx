@@ -59,16 +59,7 @@ export default function TodosPage() {
   });
 
   // Todo 追加
-  const [addTodo] = useMutation(AddTodoDocument, {
-    optimisticResponse: {
-      addTodo: {
-        __typename: "Todo",
-        id: "temp-" + crypto.randomUUID(),
-        title,
-        completed: false,
-      },
-    },
-  });
+  const [addTodo] = useMutation(AddTodoDocument);
   const [deleteTodo] = useMutation(DeleteTodoDocument);
   const [toggleTodo] = useMutation(ToggleTodoDocument);
 
@@ -77,9 +68,6 @@ export default function TodosPage() {
 
     deleteTodo({
       variables: { id },
-      optimisticResponse: {
-        deleteTodo: id,
-      },
     });
   };
   // Todo 切り替え
